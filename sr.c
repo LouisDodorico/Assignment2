@@ -227,7 +227,9 @@ void B_input(struct pkt packet)
     
     id = (B_expected_seqnum - 1 + WINDOWSIZE) % SEQSPACE;
 
-
+    if (((B_expected_seqnum <= id) && (packet.seqnum >= B_expected_seqnum && packet.seqnum <= id)) ||
+    ((B_expected_seqnum > id) && (packet.seqnum >= B_expected_seqnum || packet.seqnum <= id))) {
+    buffer[packet.seqnum % WINDOWSIZE] = packet;
 }
   }
 }
