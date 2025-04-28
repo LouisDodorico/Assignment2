@@ -221,15 +221,19 @@ void B_input(struct pkt packet)
       return;   
 
     int offset = (packet.seqnum - expectedseqnum + SEQSPACE) % SEQSPACE;
-    if (offset < WINDOWSIZE) {
-      rcvBuffer[offset] = packet;
-    }
+    if (offset >= WINDOWSIZE)
+        return;
+    if (!rcvSeen[offset]) {
+        rcvSeen[offset] = true;
+        rcvBuffer[offset] = packet;
+        packets_received++;
+
+        sendpkt.acknum = packet.seqnum;
+        sendpkt.seqnum = B_nextseqnum;
+        B_nextseqnum = (B_nextseqnum + 1) % 2;
 
     for (i = 0; i < 20; i++) sendpkt.payload[i] = '0';
-    sendpkt.seqnum = B_nextseqnum;
-    B_nextseqnum = (B_nextseqnum + 1) % 2;
     sendpkt.checksum = ComputeChecksum(sendpkt);
-    packets_received++;
     tolayer3(B, sendpkt);
 
     bool inWindow=(offset<WINDOWSIZE);
