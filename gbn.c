@@ -212,7 +212,8 @@ void B_input(struct pkt packet)
   int i;
 
   /* if not corrupted and received packet is in order */
-  if  ( (!IsCorrupted(packet))  && (packet.seqnum == expectedseqnum) ) {
+  if  (!IsCorrupted(packet)) {
+    int offset = (packet.seqnum - expectedseqnum + SEQSPACE) % SEQSPACE;
     if (TRACE > 0)
       printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
     packets_received++;
