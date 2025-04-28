@@ -61,8 +61,6 @@ static int windowfirst, windowlast;    /* array indexes of the first/last packet
 static int windowcount;                /* the number of packets currently awaiting an ACK */
 static int A_nextseqnum;               /* the next sequence number to be used by the sender */
 static int ackcount=0;
-static int slot_acked[WINDOWSIZE];
-
 /* called from layer 5 (application layer), passed the message to be sent to other side */
 void A_output(struct msg message)
 {
@@ -130,12 +128,12 @@ void A_input(struct pkt packet)
             /* packet is a new ACK */
             if (TRACE > 0)
               printf("----A: ACK %d is not a duplicate\n",packet.acknum);
-              buffer[packet.acknum % WINDOWSIZE].acknum = 1;
+            buffer[packet.acknum % WINDOWSIZE].acknum = 1;
               windowcount--;
               ackcount++;
               new_ACKs++;
             if (buffer[windowfirst].seqnum == packet.acknum) {
-                for (int i = 0; i < WINDOWSIZE; i++) {
+                for (i = 0; i < WINDOWSIZE; i++) {
                     if (buffer[windowfirst].acknum == 1) {
                         windowfirst = (windowfirst + 1) % WINDOWSIZE;
                         ackcount--;
@@ -199,8 +197,6 @@ void A_init(void)
 
 /********* Receiver (B)  variables and procedures ************/
 
-static struct pkt rcvBuffer[WINDOWSIZE]; /* buffer for storing received packets */
-static bool rcvSeen[WINDOWSIZE] = {0};
 static int expectedseqnum; /* the sequence number expected next by the receiver */
 static int B_nextseqnum;   /* the sequence number for the next packets sent by B */
 static int B_expected_seqnum;
@@ -209,7 +205,7 @@ static int B_windowstart;
 void B_input(struct pkt packet)
 {
   struct pkt sendpkt;
-  int id;
+  int id, i;
 
   /* if not corrupted and received packet is in order */
   if (!IsCorrupted(packet)) {
@@ -220,7 +216,7 @@ void B_input(struct pkt packet)
     sendpkt.seqnum = B_nextseqnum;
     B_nextseqnum = (B_nextseqnum + 1) % SEQSPACE;
     
-    for (int i = 0; i < 20; i++) sendpkt.payload[i] = '0';
+    for (i = 0; i < 20; i++) sendpkt.payload[i] = '0';
     sendpkt.checksum = ComputeChecksum(sendpkt);
     packets_received++;
     tolayer3(B, sendpkt);
@@ -231,7 +227,7 @@ void B_input(struct pkt packet)
     ((B_expected_seqnum > id) && (packet.seqnum >= B_expected_seqnum || packet.seqnum <= id))) {
     buffer[packet.seqnum % WINDOWSIZE] = packet;
     if (packet.seqnum == B_expected_seqnum) {
-        for (int i = 0; i < WINDOWSIZE; i++) {
+        for (i = 0; i < WINDOWSIZE; i++) {
             if (buffer[B_windowstart].seqnum == B_expected_seqnum) {
                 tolayer5(B, buffer[windowfirst].payload);
                 B_windowstart = (B_windowstart + 1) % WINDOWSIZE;
