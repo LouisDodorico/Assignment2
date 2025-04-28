@@ -248,12 +248,13 @@ void B_input(struct pkt packet)
 /* the following routine will be called once (only) before any other */
 /* entity B routines are called. You can use it to do any initialization */
 void B_init(void)
-{
+{  
+    int i;
   expectedseqnum = 0;
   B_nextseqnum = 1;
   B_expected_seqnum = 0;
   B_windowstart = 0;
-  int i;
+
   for (i = 0; i < WINDOWSIZE; i++) {
       B_Seen[i] = false;
   }
