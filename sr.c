@@ -178,13 +178,13 @@ void A_timerinterrupt(void)
     if(!slot_acked[idx]){
     if (TRACE > 0)
       printf ("---A: resending packet %d\n", buffer[idx].seqnum);
-    }
-    tolayer3(A,buffer[(windowfirst+i) % WINDOWSIZE]);
+    tolayer3(A,buffer[idx]);
     packets_resent++;
-    if (i==0) starttimer(A,RTT);
-  }
-}       
-
+    starttimer(A,RTT);
+    break;
+    }
+    }       
+}
 
 
 /* the following routine will be called once (only) before any other */
