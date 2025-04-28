@@ -201,12 +201,14 @@ static int expectedseqnum; /* the sequence number expected next by the receiver 
 static int B_nextseqnum;   /* the sequence number for the next packets sent by B */
 static int B_expected_seqnum;
 static int B_windowstart;
+static struct pkt rcvBuffer[WINDOWSIZE];
+static bool rcvSeen[WINDOWSIZE];
 /* called from layer 3, when a packet arrives for layer 4 at B*/
 void B_input(struct pkt packet)
 {
   struct pkt sendpkt;
   int id, i;
-
+  bool inWindow;
   /* if not corrupted and received packet is in order */
   if (!IsCorrupted(packet)) {
     if (TRACE > 0)
@@ -223,22 +225,24 @@ void B_input(struct pkt packet)
     
     id = (B_expected_seqnum - 1 + WINDOWSIZE) % SEQSPACE;
 
-    if (((B_expected_seqnum <= id) && (packet.seqnum >= B_expected_seqnum && packet.seqnum <= id)) ||
-    ((B_expected_seqnum > id) && (packet.seqnum >= B_expected_seqnum || packet.seqnum <= id))) {
+    inWindow = (((B_expected_seqnum <= id) && (packet.seqnum >= B_expected_seqnum && packet.seqnum <= id)) ||
+    ((B_expected_seqnum > id) && (packet.seqnum >= B_expected_seqnum || packet.seqnum <= id))); 
     buffer[packet.seqnum % WINDOWSIZE] = packet;
-    if (packet.seqnum == B_expected_seqnum) {
-        for (i = 0; i < WINDOWSIZE; i++) {
-            if (buffer[B_windowstart].seqnum == B_expected_seqnum) {
-                tolayer5(B, buffer[windowfirst].payload);
-                B_windowstart = (B_windowstart + 1) % WINDOWSIZE;
-                B_expected_seqnum = (B_expected_seqnum + 1) % SEQSPACE;
+    if (inWindow) {
+        rcvBuffer[packet.seqnum % WINDOWSIZE] = packet;
+        rcvSeen[packet.seqnum % WINDOWSIZE] = true;
+        while (rcvSeen[B_windowstart]) {
+            tolayer5(B, rcvBuffer[B_windowstart].payload);
+            rcvSeen[B_windowstart] = false;
+            B_windowstart = (B_windowstart + 1) % WINDOWSIZE;
+            B_expected_seqnum = (B_expected_seqnum + 1) % SEQSPACE;
             }
         }
 
     }
 }   
-  }
-}
+
+
   
 
 
