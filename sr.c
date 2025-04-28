@@ -70,7 +70,7 @@ void A_output(struct msg message)
   int i;
 
   /* if not blocked waiting on ACK */
-  if ( windowcount < WINDOWSIZE) {
+  if ( windowcount + ackcount < WINDOWSIZE) {
     if (TRACE > 1)
       printf("----A: New message arrives, send window is not full, send new messge to layer3!\n");
 
@@ -86,7 +86,7 @@ void A_output(struct msg message)
     windowlast = (windowlast + 1) % WINDOWSIZE; 
     buffer[windowlast] = sendpkt;
     windowcount++;
-
+    slot_acked[windowlast] = 0;
     /* send out packet */
     if (TRACE > 0)
       printf("Sending packet %d to layer 3\n", sendpkt.seqnum);
