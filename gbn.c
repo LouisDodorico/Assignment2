@@ -203,7 +203,6 @@ void A_init(void)
 
 static int expectedseqnum; /* the sequence number expected next by the receiver */
 static int B_nextseqnum;   /* the sequence number for the next packets sent by B */
-static struct pkt rcvBuffer[WINDOWSIZE]; /* buffer to store received packets */
 
 
 /* called from layer 3, when a packet arrives for layer 4 at B*/
@@ -213,22 +212,21 @@ void B_input(struct pkt packet)
   int i;
 
   /* if not corrupted and received packet is in order */
-  if  (!IsCorrupted(packet)) {
-    int offset = (packet.seqnum - expectedseqnum + SEQSPACE) % SEQSPACE;
-    if(offset<WINDOWSIZE){
-      rcvBuffer[offset] = packet;
+  if  ( (!IsCorrupted(packet))  && (packet.seqnum == expectedseqnum) ) {
     if (TRACE > 0)
       printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
-    sendpkt.acknum = packet.seqnum;
+    packets_received++;
+
     /* deliver to receiving application */
-    tolayer5(B, sendpkt);
-    
-    while (rcvBuffer[0].seqnum == expectedseqnum){
-      tolayer5(B, rcvBuffer[0].payload);
-      
-    }
+    tolayer5(B, packet.payload);
+
+    /* send an ACK for the received packet */
+    sendpkt.acknum = expectedseqnum;
+
+    /* update state variables */
+    expectedseqnum = (expectedseqnum + 1) % SEQSPACE;        
   }
-  } else {
+  else {
     /* packet is corrupted or out of order resend last ACK */
     if (TRACE > 0) 
       printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
