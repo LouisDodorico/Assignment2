@@ -145,8 +145,7 @@ void A_input(struct pkt packet)
             windowcount--;
             ackcount--;
 
-            if(TRACE > 0)
-                printf("A_input:window slid, new windowfirst=%d, windowcount=%d\n",windowfirst, windowcount);
+
         }
 
 	    /* start timer again if there are still more unacked packets in window */
@@ -218,7 +217,9 @@ void B_input(struct pkt packet)
 
   /* if not corrupted and received packet is in order */
   if (IsCorrupted(packet)) 
-      return;   
+        return;
+    if (TRACE > 0)
+        printf("----B: packet %d is correctly received, send ACK!\n", packet.seqnum);
 
     int offset = (packet.seqnum - expectedseqnum + SEQSPACE) % SEQSPACE;
     if (offset >= WINDOWSIZE)
