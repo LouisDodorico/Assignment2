@@ -123,8 +123,10 @@ void A_input(struct pkt packet)
     total_ACKs_received++;
 
     /* check if new ACK or duplicate */
-    if (windowcount != 0) {
-          int seqfirst = buffer[windowfirst].seqnum;
+    if (windowcount > 0 || ackcount > 0) {
+        int idx = (packet.acknum - buffer[windowfirst].seqnum + WINDOWSIZE) % WINDOWSIZE;
+         
+        int seqfirst = buffer[windowfirst].seqnum;
           int seqlast = buffer[windowlast].seqnum;
           /* check case when seqnum has and hasn't wrapped */
           if (((seqfirst <= seqlast) && (packet.acknum >= seqfirst && packet.acknum <= seqlast)) ||
