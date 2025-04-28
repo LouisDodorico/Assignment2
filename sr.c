@@ -205,6 +205,8 @@ void A_init(void)
 
 /********* Receiver (B)  variables and procedures ************/
 
+static struct pkt rcvBuffer[WINDOWSIZE]; /* buffer for storing received packets */
+
 static int expectedseqnum; /* the sequence number expected next by the receiver */
 static int B_nextseqnum;   /* the sequence number for the next packets sent by B */
 
@@ -216,10 +218,13 @@ void B_input(struct pkt packet)
   int i;
 
   /* if not corrupted and received packet is in order */
-  if  ( (!IsCorrupted(packet))  && (packet.seqnum == expectedseqnum) ) {
-    if (TRACE > 0)
-      printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
-    packets_received++;
+  if (!IsCorrupted(packet)) {
+    int offset = (packet.seqnum - expectedseqnum + SEQSPACE) % SEQSPACE;
+    if (offset < WINDOWSIZE) {
+      rcvBuffer[offset] = packet;
+      if (TRACE > 0)
+        printf("B_input: Packet %d buffered (offset=%d)\n", packet.seqnum, offset);
+      sendpkt.acknum = packet.seqnum;
 
     /* deliver to receiving application */
     tolayer5(B, packet.payload);
@@ -230,6 +235,7 @@ void B_input(struct pkt packet)
     /* update state variables */
     expectedseqnum = (expectedseqnum + 1) % SEQSPACE;        
   }
+}
   else {
     /* packet is corrupted or out of order resend last ACK */
     if (TRACE > 0) 
