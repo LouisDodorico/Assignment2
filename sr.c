@@ -218,13 +218,15 @@ void B_input(struct pkt packet)
   int i;
 
   /* if not corrupted and received packet is in order */
-  if (!IsCorrupted(packet)) {
+  if (!IsCorrupted(packet)) {      
+    if (TRACE > 0)
+        printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
+      sendpkt.acknum = packet.seqnum;
+  }
     int offset = (packet.seqnum - expectedseqnum + SEQSPACE) % SEQSPACE;
     if (offset < WINDOWSIZE) {
       rcvBuffer[offset] = packet;
-      if (TRACE > 0)
-        printf("B_input: Packet %d buffered (offset=%d)\n", packet.seqnum, offset);
-      sendpkt.acknum = packet.seqnum;
+    }
 
     for (i = 0; i < 20; i++) sendpkt.payload[i] = '0';
     sendpkt.seqnum   = B_nextseqnum;
@@ -232,34 +234,16 @@ void B_input(struct pkt packet)
     sendpkt.checksum = ComputeChecksum(sendpkt);
     tolayer3(B, sendpkt);
 
-    /* update state variables */
-    expectedseqnum = (expectedseqnum + 1) % SEQSPACE;        
-  }
+    while (rcvBuffer[0].seqnum == expectedseqnum){
+        tolayer5(B, rcvBuffer[0].payload);
+      /* shift buffer left by one */
+      for (i = 0; i < WINDOWSIZE-1; i++)
+        rcvBuffer[i] = rcvBuffer[i+1];
+      expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
+    }
 }
-  else {
-    /* packet is corrupted or out of order resend last ACK */
-    if (TRACE > 0) 
-      printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
-    if (expectedseqnum == 0)
-      sendpkt.acknum = SEQSPACE - 1;
-    else
-      sendpkt.acknum = expectedseqnum - 1;
-  }
+  
 
-  /* create packet */
-  sendpkt.seqnum = B_nextseqnum;
-  B_nextseqnum = (B_nextseqnum + 1) % 2;
-    
-  /* we don't have any data to send.  fill payload with 0's */
-  for ( i=0; i<20 ; i++ ) 
-    sendpkt.payload[i] = '0';  
-
-  /* computer checksum */
-  sendpkt.checksum = ComputeChecksum(sendpkt); 
-
-  /* send out packet */
-  tolayer3 (B, sendpkt);
-}
 
 /* the following routine will be called once (only) before any other */
 /* entity B routines are called. You can use it to do any initialization */
