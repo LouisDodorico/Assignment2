@@ -229,18 +229,23 @@ void B_input(struct pkt packet)
     }
 
     for (i = 0; i < 20; i++) sendpkt.payload[i] = '0';
-    sendpkt.seqnum   = B_nextseqnum;
-    B_nextseqnum     = (B_nextseqnum + 1) % 2;
+    sendpkt.seqnum = B_nextseqnum;
+    B_nextseqnum = (B_nextseqnum + 1) % 2;
     sendpkt.checksum = ComputeChecksum(sendpkt);
+    packets_received++;
     tolayer3(B, sendpkt);
 
-    while (rcvBuffer[0].seqnum == expectedseqnum){
-        tolayer5(B, rcvBuffer[0].payload);
-      /* shift buffer left by one */
-      for (i = 0; i < WINDOWSIZE-1; i++)
-        rcvBuffer[i] = rcvBuffer[i+1];
-      expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
+    bool inWindow=(offset<WINDOWSIZE);
+    if(inWindow){
+        rcvBuffer[packet.seqnum % WINDOWSIZE] = packet;
+        if(packet.seqnum==expectedseqnum){
+            while(rcvBuffer[expectedseqnum % WINDOWSIZE].seqnum == expectedseqnum){
+                tolayer5(B, rcvBuffer[expectedseqnum % WINDOWSIZE].payload);
+                expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
+            }
+        }
     }
+
 }
   
 
