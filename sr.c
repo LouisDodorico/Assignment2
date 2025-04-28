@@ -204,7 +204,7 @@ static bool rcvSeen[WINDOWSIZE] = {0};
 static int expectedseqnum; /* the sequence number expected next by the receiver */
 static int B_nextseqnum;   /* the sequence number for the next packets sent by B */
 static int B_next_seqnum;
-
+static int B_expected_seqnum;
 /* called from layer 3, when a packet arrives for layer 4 at B*/
 void B_input(struct pkt packet)
 {
@@ -219,27 +219,14 @@ void B_input(struct pkt packet)
     sendpkt.acknum = packet.seqnum;
     sendpkt.seqnum = B_next_seqnum;
     B_next_seqnum = (B_next_seqnum + 1) % SEQSPACE;
-    int offset = (packet.seqnum - expectedseqnum + SEQSPACE) % SEQSPACE;
-    if (offset >= WINDOWSIZE)
-        return;
-    if (!rcvSeen[offset]) {
-        rcvSeen[offset] = true;
-        rcvBuffer[offset] = packet;
-        packets_received++;
-
-        sendpkt.acknum = packet.seqnum;
-        sendpkt.seqnum = B_nextseqnum;
-        B_nextseqnum = (B_nextseqnum + 1) % 2;
-
-    for (i = 0; i < 20; i++) sendpkt.payload[i] = '0';
+    
+    for (int i = 0; i < 20; i++) sendpkt.payload[i] = '0';
     sendpkt.checksum = ComputeChecksum(sendpkt);
+    packets_received++;
     tolayer3(B, sendpkt);
+    
+    id = (B_expected_seqnum - 1 + WINDOWSIZE) % SEQSPACE;
 
-        while (rcvSeen[expectedseqnum % WINDOWSIZE]) {
-            tolayer5(B, rcvBuffer[expectedseqnum % WINDOWSIZE].payload);
-            rcvSeen[expectedseqnum % WINDOWSIZE] = false;
-            expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
-    }
 
 }
   }
