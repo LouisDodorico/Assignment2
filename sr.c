@@ -201,8 +201,8 @@ static int expectedseqnum; /* the sequence number expected next by the receiver 
 static int B_nextseqnum;   /* the sequence number for the next packets sent by B */
 static int B_expected_seqnum;
 static int B_windowstart;
-static struct pkt rcvBuffer[WINDOWSIZE];
-static bool rcvSeen[WINDOWSIZE];
+static struct pkt B_Buffer[WINDOWSIZE];
+static bool B_Seen[WINDOWSIZE];
 /* called from layer 3, when a packet arrives for layer 4 at B*/
 void B_input(struct pkt packet)
 {
@@ -227,13 +227,12 @@ void B_input(struct pkt packet)
 
     inWindow = (((B_expected_seqnum <= id) && (packet.seqnum >= B_expected_seqnum && packet.seqnum <= id)) ||
     ((B_expected_seqnum > id) && (packet.seqnum >= B_expected_seqnum || packet.seqnum <= id))); 
-    buffer[packet.seqnum % WINDOWSIZE] = packet;
     if (inWindow) {
-        rcvBuffer[packet.seqnum % WINDOWSIZE] = packet;
-        rcvSeen[packet.seqnum % WINDOWSIZE] = true;
-        while (rcvSeen[B_windowstart]) {
-            tolayer5(B, rcvBuffer[B_windowstart].payload);
-            rcvSeen[B_windowstart] = false;
+        B_Buffer[packet.seqnum % WINDOWSIZE] = packet;
+        B_Seen[packet.seqnum % WINDOWSIZE] = true;
+        while (B_Seen[B_windowstart]) {
+            tolayer5(B, B_Buffer[B_windowstart].payload);
+            B_Seen[B_windowstart] = false;
             B_windowstart = (B_windowstart + 1) % WINDOWSIZE;
             B_expected_seqnum = (B_expected_seqnum + 1) % SEQSPACE;
             }
@@ -252,7 +251,12 @@ void B_init(void)
 {
   expectedseqnum = 0;
   B_nextseqnum = 1;
-  
+  B_expected_seqnum = 0;
+  B_windowstart = 0;
+  int i;
+  for (i = 0; i < WINDOWSIZE; i++) {
+      B_Seen[i] = false;
+  }
 }
 
 /******************************************************************************
