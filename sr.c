@@ -134,20 +134,13 @@ void A_input(struct pkt packet)
               windowcount--;
               ackcount++;
               new_ACKs++;
-
-        while (slot_acked[windowfirst]) {
-            for(i=0; i<WINDOWSIZE-1; i++){
-                buffer[i] = buffer[i+1];
-                slot_acked[i] = slot_acked[i+1];
-            }
-            slot_acked[WINDOWSIZE-1] = 0;
-            windowfirst=0;
-            windowlast=(windowlast-1+WINDOWSIZE)%WINDOWSIZE;
-            windowcount--;
-            ackcount--;
-
-
-        }
+            if (buffer[windowfirst].seqnum == packet.acknum) {
+                for (int i = 0; i < WINDOWSIZE; i++) {
+                    if (buffer[windowfirst].acknum == 1) {
+                        windowfirst = (windowfirst + 1) % WINDOWSIZE;
+                        ackcount--;
+                    }
+                }
 
 	    /* start timer again if there are still more unacked packets in window */
             stoptimer(A);
@@ -155,11 +148,12 @@ void A_input(struct pkt packet)
               starttimer(A, RTT);
 
         }
-        else
+    }else{
           if (TRACE > 0)
         printf ("----A: duplicate ACK received, do nothing!\n");
   }
-  else 
+}
+}else {
     if (TRACE > 0)
       printf ("----A: corrupted ACK is received, do nothing!\n");
 }
@@ -171,16 +165,17 @@ void A_timerinterrupt(void)
 
   if (TRACE > 0)
     printf("----A: time out,resend packets!\n");
-
-  for(i=0; i<WINDOWSIZE; i++) {
-    int idx = (windowfirst + i) % WINDOWSIZE;
-    if(!slot_acked[idx]){
-    if (TRACE > 0)
-      printf ("---A: resending packet %d\n", buffer[idx].seqnum);
-    tolayer3(A,buffer[idx]);
-    packets_resent++;
-    starttimer(A,RTT);
-    break;
+  if(windowcount>0){
+        for(i=0; i<WINDOWSIZE; i++) {
+        int idx = (windowfirst + i) % WINDOWSIZE;
+            if(buffer[idx].acknum != 1){
+            if (TRACE > 0)
+                printf ("---A: resending packet %d\n", buffer[idx].seqnum);
+            tolayer3(A,buffer[idx]);
+            packets_resent++;
+            starttimer(A,RTT);
+            break;
+        }
     }
     }       
 }
