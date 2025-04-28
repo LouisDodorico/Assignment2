@@ -126,16 +126,14 @@ void A_input(struct pkt packet)
     if (windowcount > 0 || ackcount > 0) {
         int idx = (packet.acknum - buffer[windowfirst].seqnum + WINDOWSIZE) % WINDOWSIZE;
          
-        int seqfirst = buffer[windowfirst].seqnum;
-          int seqlast = buffer[windowlast].seqnum;
-          /* check case when seqnum has and hasn't wrapped */
-          if (((seqfirst <= seqlast) && (packet.acknum >= seqfirst && packet.acknum <= seqlast)) ||
-              ((seqfirst > seqlast) && (packet.acknum >= seqfirst || packet.acknum <= seqlast))) {
-
+        if (slot_acked[idx] == 0) {
+            slot_acked[idx] = 1;
+            ackcount++;
+            new_ACKs++;
+        }
             /* packet is a new ACK */
             if (TRACE > 0)
               printf("----A: ACK %d is not a duplicate\n",packet.acknum);
-            new_ACKs++;
 
             /* cumulative acknowledgement - determine how many packets are ACKed */
             if (packet.acknum >= seqfirst)
