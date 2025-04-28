@@ -226,11 +226,11 @@ void B_input(struct pkt packet)
         printf("B_input: Packet %d buffered (offset=%d)\n", packet.seqnum, offset);
       sendpkt.acknum = packet.seqnum;
 
-    /* deliver to receiving application */
-    tolayer5(B, packet.payload);
-
-    /* send an ACK for the received packet */
-    sendpkt.acknum = expectedseqnum;
+    for (i = 0; i < 20; i++) sendpkt.payload[i] = '0';
+    sendpkt.seqnum   = B_nextseqnum;
+    B_nextseqnum     = (B_nextseqnum + 1) % 2;
+    sendpkt.checksum = ComputeChecksum(sendpkt);
+    tolayer3(B, sendpkt);
 
     /* update state variables */
     expectedseqnum = (expectedseqnum + 1) % SEQSPACE;        
