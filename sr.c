@@ -135,25 +135,26 @@ void A_input(struct pkt packet)
             if (TRACE > 0)
               printf("----A: ACK %d is not a duplicate\n",packet.acknum);
 
-            /* cumulative acknowledgement - determine how many packets are ACKed */
-            if (packet.acknum >= seqfirst)
-              ackcount = packet.acknum + 1 - seqfirst;
-            else
-              ackcount = SEQSPACE - seqfirst + packet.acknum;
+        while (slot_acked[windowfirst]) {
+            for(i=0; i<WINDOWSIZE-1; i++){
+                buffer[i] = buffer[i+1];
+                slot_acked[i] = slot_acked[i+1];
+            }
+            slot_acked[WINDOWSIZE-1] = 0;
+            windowfirst=0;
+            windowlast=(windowlast-1+WINDOWSIZE)%WINDOWSIZE;
+            windowcount--;
+            ackcount--;
 
-	    /* slide window by the number of packets ACKed */
-            windowfirst = (windowfirst + ackcount) % WINDOWSIZE;
-
-            /* delete the acked packets from window buffer */
-            for (i=0; i<ackcount; i++)
-              windowcount--;
+            if(TRACE > 0)
+                printf("A_input:window slid, new windowfirst=%d, windowcount=%d\n",windowfirst, windowcount);
+        }
 
 	    /* start timer again if there are still more unacked packets in window */
             stoptimer(A);
             if (windowcount > 0)
               starttimer(A, RTT);
 
-          }
         }
         else
           if (TRACE > 0)
