@@ -236,17 +236,13 @@ void B_input(struct pkt packet)
     sendpkt.checksum = ComputeChecksum(sendpkt);
     tolayer3(B, sendpkt);
 
-    bool inWindow=(offset<WINDOWSIZE);
-    if(inWindow){
-        rcvBuffer[packet.seqnum % WINDOWSIZE] = packet;
-        if(packet.seqnum==expectedseqnum){
-            while(rcvBuffer[expectedseqnum % WINDOWSIZE].seqnum == expectedseqnum){
-                tolayer5(B, rcvBuffer[expectedseqnum % WINDOWSIZE].payload);
-                expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
-            }
-        }
+        while (rcvSeen[expectedseqnum % WINDOWSIZE]) {
+            tolayer5(B, rcvBuffer[expectedseqnum % WINDOWSIZE].payload);
+            rcvSeen[expectedseqnum % WINDOWSIZE] = false;
+            expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
     }
 
+}
 }
   
 
