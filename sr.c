@@ -203,20 +203,22 @@ static struct pkt rcvBuffer[WINDOWSIZE]; /* buffer for storing received packets 
 static bool rcvSeen[WINDOWSIZE] = {0};
 static int expectedseqnum; /* the sequence number expected next by the receiver */
 static int B_nextseqnum;   /* the sequence number for the next packets sent by B */
-
+static int B_next_seqnum;
 
 /* called from layer 3, when a packet arrives for layer 4 at B*/
 void B_input(struct pkt packet)
 {
   struct pkt sendpkt;
-  int i;
+  int id;
 
   /* if not corrupted and received packet is in order */
-  if (IsCorrupted(packet)) 
-        return;
+  if (!IsCorrupted(packet)) {
     if (TRACE > 0)
         printf("----B: packet %d is correctly received, send ACK!\n", packet.seqnum);
-
+        
+    sendpkt.acknum = packet.seqnum;
+    sendpkt.seqnum = B_next_seqnum;
+    B_next_seqnum = (B_next_seqnum + 1) % SEQSPACE;
     int offset = (packet.seqnum - expectedseqnum + SEQSPACE) % SEQSPACE;
     if (offset >= WINDOWSIZE)
         return;
@@ -240,6 +242,7 @@ void B_input(struct pkt packet)
     }
 
 }
+  }
 }
   
 
@@ -250,6 +253,7 @@ void B_init(void)
 {
   expectedseqnum = 0;
   B_nextseqnum = 1;
+  
 }
 
 /******************************************************************************
